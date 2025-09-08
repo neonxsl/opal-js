@@ -51,9 +51,11 @@ opal-js run
 opal-js [command]
 ```
 Command	Description
+```
 run	Start the server (default)
 port	Start the server on a specified port
 help	Show the help menu with available commands
+```
 
 Example:
 ```bash
@@ -87,7 +89,6 @@ curl http://localhost:8181/artwork --output artwork.jpg
 Control playback:
 ```bash
 curl -X PUT http://localhost:8181/pause
-curl -X PUT -d '{"level":50}' http://localhost:8181/volume
 ```
 
 ⸻
