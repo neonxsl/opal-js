@@ -1,5 +1,40 @@
 #!/usr/bin/env node
 
+const OPAL_VERSION = '0.1.0';
+
+// ===== CLI Handling for opal-js =====
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  const USAGE = `
+opal-js [command]
+
+Commands:
+  run             Start the server (default)
+  port <port>     Start the server on the given port
+  help            Show this help
+`;
+  function startServer() {
+    // just continue, rest of file will start server as normal
+  }
+  if (args.length > 0) {
+    if (args[0] === 'help' || args[0] === '--help' || args[0] === '-h') {
+      console.log(USAGE);
+      process.exit(0);
+    }
+    if (args[0] === 'port' && args[1]) {
+      process.env.PORT = args[1];
+      // continue, rest of file will use process.env.PORT
+    } else if (args[0] === 'run') {
+      // continue, run is default
+    } else if (args[0] !== 'run') {
+      // Unknown command
+      console.log('Unknown command:', args[0]);
+      console.log(USAGE);
+      process.exit(1);
+    }
+  }
+}
+
 var fs = require('fs');
 var path = require('path');
 var express = require('express');
@@ -15,6 +50,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 var logFormat = "[:date[iso]] - :remote-addr - :method :url :status :response-time ms";
 app.use(morgan(logFormat));
+
+// Add middleware to log unique IP connections only once
+const connectedIPs = new Set();
+app.use((req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress;
+  if (!connectedIPs.has(ip)) {
+    connectedIPs.add(ip);
+    console.log(`IP ${ip} has connected`);
+  }
+  next();
+});
 
 // ===== Apple Music / iTunes API helpers =====
 function getCurrentState() {
@@ -221,4 +267,37 @@ app.get('/artwork', function(req, res) {
   });
 });
 
-app.listen(process.env.PORT||8181,()=>console.log('Apple Music API (iTunes-compatible) running on port 8181'));
+const port = process.env.PORT || 8181;
+app.listen(port, () => {
+  const chalk = require('chalk');
+  const gradient = require('gradient-string');
+  const os = require('os');
+
+  const banner = `
+ ██████╗ ██████╗  █████╗ ██╗     neonxsl   
+██╔═══██╗██╔══██╗██╔══██╗██║     apple music API 
+██║   ██║██████╔╝███████║██║     
+██║   ██║██╔═══╝ ██╔══██║██║     
+╚██████╔╝██║     ██║  ██║███████╗
+ ╚═════╝ ╚═╝     ╚═╝  ╚═╝╚══════╝
+   opal-js v${OPAL_VERSION}   
+   
+`;
+
+  console.log(gradient.rainbow(banner));
+
+  const interfaces = os.networkInterfaces();
+  let localIp = 'localhost';
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIp = iface.address;
+        break;
+      }
+    }
+    if (localIp !== 'localhost') break;
+  }
+
+  console.log(`opal-js is running on port ${(port)}`);
+  console.log(`host ip: ${(localIp)}`);
+});
