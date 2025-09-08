@@ -29,9 +29,9 @@ npm link
 ```
 
 ## ⚙️ Options
-
+```bash
 opal-js [command]
-
+```
 Commands:
   run             Start the server (default)
   port <port>     Start the server on the given port
