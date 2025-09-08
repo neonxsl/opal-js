@@ -11,7 +11,7 @@ It replicates the behaviour of [`itunes-api`](https://github.com/maddox/itunes-a
 - Exposes:
   - Current track metadata (title, artist, album, duration, player state)
   - Album artwork (served as `.jpg`)  
-- Simple REST API (`/metadata` and `/artwork` endpoints)  
+- Simple REST API (`/now_playing` and `/artwork` endpoints)  
 
 ---
 
