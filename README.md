@@ -23,3 +23,8 @@ cd opal-js
 npm install
 npm start
 ```
+- if you want to run globally run
+- 
+```bash
+npm link
+```
