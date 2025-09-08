@@ -17,16 +17,6 @@ It replicates the behaviour of [`itunes-api`](https://github.com/maddox/itunes-a
 
 ## 🚀 Installation
 
-Install globally from npm:
-
-```bash
-npm install -g opal-js
-```
-
-## 🔨 Compile from Source
-
-Clone the repository and run it manually:
-
 ```bash
 git clone https://github.com/neonxsl/opal-js.git
 cd opal-js
