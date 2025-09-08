@@ -59,9 +59,9 @@ help	Show the help menu with available commands
 
 Example:
 ```bash
-opal-js port 8181
+opal-js port 555
 ```
-This starts the server on port 8181 instead of the default port 8181.
+This starts the server on port 555 instead of the default port 8181.
 
 ⸻
 
