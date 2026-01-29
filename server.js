@@ -70,34 +70,33 @@ function getCurrentState() {
 
   if (state.toLowerCase() !== 'stopped') {
     var track = Music.currentTrack;
-    var playlist = Music.currentPlaylist;
+    
+    // SAFE PLAYLIST HANDLING
+    var playlistName = "Library/Stream";
+    try {
+      // When streaming, currentPlaylist often fails or returns null
+      var playlist = Music.currentPlaylist;
+      if (playlist) {
+        playlistName = playlist.name();
+      }
+    } catch (e) {
+      // Ignore error, fallback to default name
+    }
 
     currentState.id = track.persistentID();
     currentState.name = track.name();
     currentState.artist = track.artist();
     currentState.album = track.album();
-    currentState.playlist = playlist.name();
+    currentState.playlist = playlistName;
     currentState.volume = Music.soundVolume();
     currentState.muted = Music.mute();
     currentState.repeat = Music.songRepeat();
     currentState.shuffle = Music.shuffleEnabled() ? Music.shuffleMode() : false;
     currentState.duration = track.duration();
 
-    // Album artwork
-    try {
-      var artwork = track.artworks[0];
-      if (artwork) {
-        var data = artwork.data();
-        if (data) {
-          var filePath = '/tmp/current-artwork.jpg';
-          fs.writeFileSync(filePath, data, 'binary');
-          currentState.artwork = '/artwork/current.jpg'; // serve as file URL
-        }
-      }
-    } catch(e) {
-      console.log('Artwork error:', e);
-      currentState.artwork = null;
-    }
+    // Artwork handling inside 'osa' is difficult because we cannot easily require('fs').
+    // We will leave artwork null here and let the specific /artwork endpoint handle images.
+    currentState.artwork = '/artwork/current.jpg'; 
   }
 
   return currentState;
@@ -218,8 +217,69 @@ app.put('/airplay_devices/:id/volume',(req,res)=>res.sendStatus(501));
 
 // ===== Start server =====
 // Serve artwork file
-app.get('/artwork/current.jpg', (req, res) => {
-  res.sendFile('/tmp/current-artwork.jpg');
+// Serve artwork directly from memory
+app.get(['/artwork', '/artwork/current.jpg'], function(req, res) {
+  const { exec } = require('child_process');
+
+  // Script: Get raw data, do NOT write to file
+  const script = `
+    tell application "Music"
+      if player state is stopped then return "stopped"
+      try
+        set trackArtworks to artworks of current track
+        if (count of trackArtworks) is 0 then return "no_art"
+        
+        -- Get the raw data of the image
+        set imgData to data of item 1 of trackArtworks
+        
+        -- Convert to HEX string for safe transport to Node
+        -- (AppleScript often returns raw classes, this forces a string representation)
+        return imgData as string
+      on error
+        return "error"
+      end try
+    end tell
+  `;
+
+  exec(`osascript -e '${script}'`, { maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
+    if (err) {
+      console.error('Artwork exec error:', err);
+      return res.sendStatus(500);
+    }
+
+    const output = stdout.trim();
+
+    if (output === 'stopped' || output === 'no_art' || output === 'error' || output === '') {
+      // You could send a placeholder image here instead
+      return res.status(404).send('No artwork available');
+    }
+
+    try {
+      // AppleScript returns data in the format: «data playFFD8FFE0...*/»
+      // We need to clean this up to get the raw Hex
+      let hex = output;
+      
+      // Strip AppleScript data wrapper if present
+      if (hex.includes('«data play')) {
+        hex = hex.split('«data play')[1].split('»')[0];
+      }
+      
+      // Remove any whitespace/newlines
+      hex = hex.replace(/\s+/g, '');
+
+      // Convert Hex to Buffer
+      const imgBuffer = Buffer.from(hex, 'hex');
+
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': imgBuffer.length
+      });
+      res.end(imgBuffer);
+    } catch (e) {
+      console.error('Error parsing artwork:', e);
+      res.sendStatus(500);
+    }
+  });
 });
 
 // Dynamic artwork endpoint using AppleScript via execFile
