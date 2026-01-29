@@ -21,7 +21,7 @@ Designed with simplicity and reliability in mind, Opal enables Home Assistant us
   - Play, pause, stop, next, previous track  
   - Volume adjustment, mute/unmute  
   - Shuffle and repeat modes  
-- Lightweight and easy to deploy; runs entirely locally on macOS  
+- Lightweight and easy to deploy; runs (mostly*) entirely locally on macOS
 
 ---
 
@@ -92,6 +92,8 @@ curl -X PUT http://localhost:8181/pause
 ```
 
 ⸻
+
+*uses iTunes API as a fallback for album art
 
 📜 License
 
